@@ -15,6 +15,7 @@ export const enum Parts {
 	TITLEBAR_PART = 'workbench.parts.titlebar',
 	ACTIVITYBAR_PART = 'workbench.parts.activitybar',
 	SIDEBAR_PART = 'workbench.parts.sidebar',
+	SIDEBAR_ALT_PART = 'workbench.parts.sidebaralt',
 	PANEL_PART = 'workbench.parts.panel',
 	EDITOR_PART = 'workbench.parts.editor',
 	STATUSBAR_PART = 'workbench.parts.statusbar'

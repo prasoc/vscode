@@ -66,6 +66,7 @@ export class WorkbenchLegacyLayout extends Disposable implements IVerticalSashLa
 			activitybar: Part,
 			editor: Part,
 			sidebar: Part,
+			sidebaralt: Part,
 			panel: Part,
 			statusbar: Part
 		},

@@ -84,6 +84,7 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 	private titleBarPartView: View;
 	private activityBarPartView: View;
 	private sideBarPartView: View;
+	private sideBarAltPartView: View;
 	private panelPartView: View;
 	private editorPartView: View;
 	private statusBarPartView: View;
@@ -116,6 +117,13 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 		sideBar: {
 			hidden: false,
 			position: Position.LEFT,
+			width: 300,
+			viewletToRestore: undefined as string | undefined
+		},
+
+		sideBarAlt: {
+			hidden: false,
+			position: Position.RIGHT,
 			width: 300,
 			viewletToRestore: undefined as string | undefined
 		},
@@ -306,6 +314,7 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 			}
 
 			this.workbenchGrid.removeView(this.sideBarPartView);
+			this.workbenchGrid.removeView(this.sideBarAltPartView);
 			this.workbenchGrid.removeView(this.activityBarPartView);
 
 			if (!this.state.panel.hidden && this.state.panel.position === Position.BOTTOM) {
@@ -335,6 +344,12 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 		// Sidebar position
 		this.state.sideBar.position = (this.configurationService.getValue<string>(Settings.SIDEBAR_POSITION) === 'right') ? Position.RIGHT : Position.LEFT;
 
+		// Sidebar alt visibility
+		this.state.sideBarAlt.hidden = this.storageService.getBoolean(Storage.SIDEBAR_HIDDEN, StorageScope.WORKSPACE, this.contextService.getWorkbenchState() === WorkbenchState.EMPTY);
+
+		// Sidebar alt position
+		this.state.sideBarAlt.position = (this.configurationService.getValue<string>(Settings.SIDEBAR_POSITION) === 'right') ? Position.LEFT : Position.RIGHT;
+
 		// Sidebar viewlet
 		if (!this.state.sideBar.hidden) {
 
@@ -342,16 +357,36 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 			let viewletToRestore: string;
 			if (!this.environmentService.isBuilt || lifecycleService.startupKind === StartupKind.ReloadedWindow) {
 				viewletToRestore = this.storageService.get(SidebarPart.activeViewletSettingsKey, StorageScope.WORKSPACE, this.viewletService.getDefaultViewletId());
+
 			} else {
 				viewletToRestore = this.viewletService.getDefaultViewletId();
 			}
-
+			console.log('sb: ', viewletToRestore);
 			if (viewletToRestore) {
 				this.state.sideBar.viewletToRestore = viewletToRestore;
 			} else {
 				this.state.sideBar.hidden = true; // we hide sidebar if there is no viewlet to restore
 			}
 		}
+
+		// // Sidebar viewlet
+		// if (!this.state.sideBarAlt.hidden) {
+		// 	const getView = 'workbench.view.exploreralt';
+		// 	// Only restore last viewlet if window was reloaded or we are in development mode
+		// 	let viewletToRestore: string;
+		// 	if (!this.environmentService.isBuilt || lifecycleService.startupKind === StartupKind.ReloadedWindow) {
+		// 		viewletToRestore = this.storageService.get(SidebarAltPart.activeViewletSettingsKey, StorageScope.WORKSPACE, getView);
+
+		// 	} else {
+		// 		viewletToRestore = getView;
+		// 	}
+		// 	console.log('sba: ', viewletToRestore);
+		// 	if (viewletToRestore) {
+		// 		this.state.sideBarAlt.viewletToRestore = 'workbench.view.exploreralt';
+		// 	} else {
+		// 		this.state.sideBarAlt.hidden = true; // we hide sidebar if there is no viewlet to restore
+		// 	}
+		// }
 
 		// Editor centered layout
 		this.state.editor.restoreCentered = this.storageService.getBoolean(Storage.CENTERED_LAYOUT_ENABLED, StorageScope.WORKSPACE, false);
@@ -449,10 +484,13 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 	}
 
 	registerPart(part: Part): void {
+		console.log('registerPart: ', part);
 		this.parts.set(part.getId(), part);
 	}
 
 	protected getPart(key: Parts): Part {
+		console.log('getPart: ', key);
+		console.log(this.parts);
 		const part = this.parts.get(key);
 		if (!part) {
 			throw new Error(`Unknown part ${key}`);
@@ -484,6 +522,8 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 				return this.getPart(Parts.ACTIVITYBAR_PART).getContainer();
 			case Parts.SIDEBAR_PART:
 				return this.getPart(Parts.SIDEBAR_PART).getContainer();
+			case Parts.SIDEBAR_ALT_PART:
+				return this.getPart(Parts.SIDEBAR_ALT_PART).getContainer();
 			case Parts.PANEL_PART:
 				return this.getPart(Parts.PANEL_PART).getContainer();
 			case Parts.EDITOR_PART:
@@ -511,6 +551,8 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 				return false;
 			case Parts.SIDEBAR_PART:
 				return !this.state.sideBar.hidden;
+			case Parts.SIDEBAR_ALT_PART:
+				return !this.state.sideBarAlt.hidden;
 			case Parts.PANEL_PART:
 				return !this.state.panel.hidden;
 			case Parts.STATUSBAR_PART:
@@ -660,13 +702,17 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 		const activityBar = this.getPart(Parts.ACTIVITYBAR_PART);
 		const panelPart = this.getPart(Parts.PANEL_PART);
 		const sideBar = this.getPart(Parts.SIDEBAR_PART);
+		const sideBarAlt = this.getPart(Parts.SIDEBAR_PART);
 		const statusBar = this.getPart(Parts.STATUSBAR_PART);
 
 		if (this.configurationService.getValue('workbench.useExperimentalGridLayout')) {
 
+			console.log('use experimental');
+
 			// Create view wrappers for all parts
 			this.titleBarPartView = new View(titleBar);
 			this.sideBarPartView = new View(sideBar);
+			this.sideBarAltPartView = new View(sideBarAlt);
 			this.activityBarPartView = new View(activityBar);
 			this.editorPartView = new View(editorPart);
 			this.panelPartView = new View(panelPart);
@@ -685,6 +731,7 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 					activitybar: activityBar,
 					editor: editorPart,
 					sidebar: sideBar,
+					sidebaralt: sideBarAlt,
 					panel: panelPart,
 					statusbar: statusBar,
 				}
@@ -835,6 +882,8 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 		switch (part) {
 			case Parts.SIDEBAR_PART:
 				view = this.sideBarPartView;
+			case Parts.SIDEBAR_ALT_PART:
+				view = this.sideBarAltPartView;
 			case Parts.PANEL_PART:
 				view = this.panelPartView;
 			case Parts.EDITOR_PART:
